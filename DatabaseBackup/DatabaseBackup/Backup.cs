@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using MySql.Data.MySqlClient;
+using System.IO;
 
 namespace DatabaseBackup
 {
@@ -28,6 +29,7 @@ namespace DatabaseBackup
             try
             {
                 //var s = "Data Source='sql3.freesqldatabase.com';Port=3306;Database='sql386557';UID='sql386557'PWD='iK2!kM1*';";
+                //excel, csv, sql, access
                 var ds = GetDataSet(args[0]);
                 ExportDataSet(ds, args[1]);
                 //var path = $@"{args[0]} {args[1]} -p {args[2]} > {args[3]}.sql";
@@ -37,7 +39,7 @@ namespace DatabaseBackup
             }
             catch (Exception e)
             {
-                eventLog.WriteEntry($"Database backup - error - {e.Message}.", EventLogEntryType.Error);
+                eventLog.WriteEntry(string.Format("Database backup - error - {0}.", e.Message), EventLogEntryType.Error);
             }
         }
 
@@ -54,7 +56,7 @@ namespace DatabaseBackup
                 {
                     var tableName = table["TABLE_NAME"].ToString();
 
-                    var daAuthors = new MySqlDataAdapter($"Select * From {tableName}", conn)
+                    var daAuthors = new MySqlDataAdapter(string.Format("Select * From {0}", tableName), conn)
                     {
                         MissingSchemaAction = MissingSchemaAction.AddWithKey
                     };
@@ -69,6 +71,9 @@ namespace DatabaseBackup
 
         private static void ExportDataSet(DataSet ds, string destination)
         {
+            var folder = Path.GetDirectoryName(destination);
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
             using (var workbook = SpreadsheetDocument.Create(destination, SpreadsheetDocumentType.Workbook))
             {
                 workbook.AddWorkbookPart();

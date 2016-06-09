@@ -1,11 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
-MinimumVisualStudioVersion = 10.0.40219.1
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DatabaseBackup", "DatabaseBackup\DatabaseBackup.csproj", "{3237F2CE-D97D-4D53-8C66-5AD4449D82E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DatabaseBackupText", "DatabaseBackupText\DatabaseBackupText.csproj", "{0888ED04-8137-4A7B-859C-4B70D3B0D6FD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DatabaseBackupTest", "DatabaseBackupText\DatabaseBackupTest.csproj", "{0888ED04-8137-4A7B-859C-4B70D3B0D6FD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
