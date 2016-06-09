@@ -34,8 +34,11 @@ namespace DatabaseBackupText
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            textBox1.Text = @"C:\Program Files\MySQL\MySQL Server 5.5\bin\mysqldump.exe -u ";
-            textBox2.Text = @"username";
+            //textBox1.Text = @"C:\Program Files\MySQL\MySQL Server 5.5\bin\mysqldump.exe -u ";
+            //textBox1.Text = @"server=sql3.freesqldatabase.com;user=sql386557;database=sql386557;password=iK2!kM1*;";
+            //textBox1.Text = @"Data Source='sql3.freesqldatabase.com';Port=3306;Database='sql386557';UID='sql386557'PWD='iK2!kM1*';";
+            textBox1.Text = @"Data Source=sql3.freesqldatabase.com;port=3306;Initial Catalog=sql386557;User Id=sql386557;password=iK2!kM1*";
+            textBox2.Text = @"c:\Development\Prollux\Test\1.xlsx";
             textBox3.Text = @"database";
             textBox4.Text = @"filename";
         }
