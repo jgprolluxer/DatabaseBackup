@@ -14,9 +14,9 @@ using ADOXJetXML;
 
 namespace DatabaseBackup
 {
-    public class Backup
+    public static class Backup
     {
-        private enum ExportType
+        public enum ExportType
         {
             Excel = 0,
             Csv,
@@ -27,7 +27,10 @@ namespace DatabaseBackup
             ExcelAccess,
             CsvSql,
             CsvAccess,
-            SqlAccess
+            SqlAccess,
+            ExcelCsvSql,
+            CsvSqlAccess,
+            ExcelCsvSqlAccess
         }
 
         public static void Database(string[] args)
@@ -48,38 +51,63 @@ namespace DatabaseBackup
                 var cs = ConfigurationManager.ConnectionStrings[alias].ToString();
                 var targetFolder = ConfigurationManager.AppSettings["TargetFolder"];
                 var ds = GetDataSet(cs);
-                var filePath = GetFilePath(targetFolder, alias, exportType);
 
                 switch (exportType)
                 {
                     case ExportType.Excel:
-                        ToExcel(ds, filePath);
+                        ToExcel(ds, targetFolder, alias);
                         break;
                     case ExportType.Csv:
                         ToCsv(ds, targetFolder, alias);
                         break;
-                    case ExportType.Access:
-                        ToAccess(ds, filePath);
-                        break;
                     case ExportType.Sql:
+                        ToSql(targetFolder, alias);
+                        break;
+                    case ExportType.Access:
+                        ToAccess(ds, targetFolder, alias);
                         break;
                     case ExportType.ExcelCsv:
+                        ToExcel(ds, targetFolder, alias);
+                        ToCsv(ds, targetFolder, alias);
                         break;
                     case ExportType.ExcelSql:
+                        ToExcel(ds, targetFolder, alias);
+                        ToSql(targetFolder, alias);
                         break;
                     case ExportType.ExcelAccess:
+                        ToExcel(ds, targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias);
                         break;
                     case ExportType.CsvSql:
+                        ToCsv(ds, targetFolder, alias);
+                        ToSql(targetFolder, alias);
                         break;
                     case ExportType.CsvAccess:
+                        ToCsv(ds, targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias);
                         break;
                     case ExportType.SqlAccess:
+                        ToSql(targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias);
+                        break;
+                    case ExportType.ExcelCsvSql:
+                        ToExcel(ds, targetFolder, alias);
+                        ToCsv(ds, targetFolder, alias);
+                        ToSql(targetFolder, alias);
+                        break;
+                    case ExportType.CsvSqlAccess:
+                        ToCsv(ds, targetFolder, alias);
+                        ToSql(targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias);
+                        break;
+                    case ExportType.ExcelCsvSqlAccess:
+                        ToExcel(ds, targetFolder, alias);
+                        ToCsv(ds, targetFolder, alias);
+                        ToSql(targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
-                    case ExportType.Sql:
-                        ToSql(filePath);
-                        break;
                 }
 
                 eventLog.WriteEntry("Database backup - success.", EventLogEntryType.SuccessAudit);
@@ -116,8 +144,10 @@ namespace DatabaseBackup
             return ds;
         }
 
-        private static void ToExcel(DataSet ds, string filePath)
+        private static void ToExcel(DataSet ds, string targetFolder, string alias)
         {
+            var filePath = GetFilePath(targetFolder, alias, ExportType.Excel);
+
             using (var workbook = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook))
             {
                 workbook.AddWorkbookPart();
@@ -234,37 +264,45 @@ namespace DatabaseBackup
             }
         }
 
-        private static void ToAccess(DataSet ds, string filePath)
-                    {
+        private static void ToAccess(DataSet ds, string targetFolder, string alias)
+        {
+            var filePath = GetFilePath(targetFolder, alias, ExportType.Access);
             var cs = ConfigurationManager.ConnectionStrings["AccessFile"].ToString().Replace("|FilePath|", filePath);
             DatasetToJet.CopyDatasetSchemaToJetDb(cs, ds, filePath);
         }
 
-        private static void ToSql(string filePath)
+        private static void ToSql(string targetFolder, string alias)
         {
-            //GET INFO FOR MYSQLDUMP
-            string host = ConfigurationManager.AppSettings["server"].ToString();
-            string port = ConfigurationManager.AppSettings["port"].ToString();
-            string databases = ConfigurationManager.AppSettings["databases"].ToString();
-            string user = ConfigurationManager.AppSettings["user"].ToString();
-            string password = ConfigurationManager.AppSettings["password"].ToString();
-            
-            StreamWriter sw = new StreamWriter(filePath, true);
+            var filePath = GetFilePath(targetFolder, alias, ExportType.Sql);
 
-            ProcessStartInfo process = new ProcessStartInfo();
-            string command = string.Format(@"-e -P{0} -h{1} {2} -u{3} -p{4}", port, host, databases, user, password);
+            //GET INFO FOR MYSQLDUMP
+            var host = ConfigurationManager.AppSettings["server"];
+            var port = ConfigurationManager.AppSettings["port"];
+            var databases = ConfigurationManager.AppSettings["databases"];
+            var user = ConfigurationManager.AppSettings["user"];
+            var password = ConfigurationManager.AppSettings["password"];
+
+            var sw = new StreamWriter(filePath, true);
+
+            var process = new ProcessStartInfo();
+            var command = string.Format(@"-e -P{0} -h{1} {2} -u{3} -p{4}", port, host, databases, user, password);
             process.FileName = "C:/Program Files/MySQL/MySQL Server 5.7/bin/mysqldump.exe";
             process.RedirectStandardInput = false;
             process.RedirectStandardOutput = true;
             process.Arguments = command;
             process.UseShellExecute = false;
-            Process proc = Process.Start(process);
-            string response = proc.StandardOutput.ReadToEnd();
-            
-            //SAVE RESPONSE IN SQL FILE
-            sw.WriteLine(response);           
-            proc.WaitForExit();
-            sw.Close();            
+            var proc = Process.Start(process);
+
+            if (proc != null)
+            {
+                var response = proc.StandardOutput.ReadToEnd();
+
+                //SAVE RESPONSE IN SQL FILE
+                sw.WriteLine(response);
+                proc.WaitForExit();
+            }
+
+            sw.Close();
         }
     }
 }
