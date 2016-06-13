@@ -62,6 +62,9 @@ namespace DatabaseBackup
                     case ExportType.Csv:
                         ToCsv(ds, targetFolder, alias);
                         break;
+                    case ExportType.Sql:
+                        ToSql(filePath);
+                        break;
                 }
 
                 //var path = $@"{args[0]} {args[1]} -p {args[2]} > {args[3]}.sql";
@@ -181,6 +184,9 @@ namespace DatabaseBackup
                 case ExportType.Csv:
                     extension = "csv";
                     break;
+                case ExportType.Sql:
+                    extension = "sql";
+                    break;
             }
 
             return string.Format(@"{0}\{1}.{2}", folder, alias, extension);
@@ -247,6 +253,33 @@ namespace DatabaseBackup
             }
 
             myConnection.Close();
+        }
+
+        private static void ToSql(string filePath)
+        {
+            //GET INFO FOR MYSQLDUMP
+            string host = ConfigurationManager.AppSettings["server"].ToString();
+            string port = ConfigurationManager.AppSettings["port"].ToString();
+            string databases = ConfigurationManager.AppSettings["databases"].ToString();
+            string user = ConfigurationManager.AppSettings["user"].ToString();
+            string password = ConfigurationManager.AppSettings["password"].ToString();
+            
+            StreamWriter sw = new StreamWriter(filePath, true);
+
+            ProcessStartInfo process = new ProcessStartInfo();
+            string command = string.Format(@"-e -P{0} -h{1} {2} -u{3} -p{4}", port, host, databases, user, password);
+            process.FileName = "C:/Program Files/MySQL/MySQL Server 5.7/bin/mysqldump.exe";
+            process.RedirectStandardInput = false;
+            process.RedirectStandardOutput = true;
+            process.Arguments = command;
+            process.UseShellExecute = false;
+            Process proc = Process.Start(process);
+            string response = proc.StandardOutput.ReadToEnd();
+            
+            //SAVE RESPONSE IN SQL FILE
+            sw.WriteLine(response);           
+            proc.WaitForExit();
+            sw.Close();            
         }
     }
 }
