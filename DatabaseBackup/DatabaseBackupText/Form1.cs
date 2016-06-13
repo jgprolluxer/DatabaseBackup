@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using DatabaseBackup;
 using System.Configuration;
+using System.Linq;
 
 namespace DatabaseBackupText
 {
@@ -22,7 +18,7 @@ namespace DatabaseBackupText
         private void button1_Click(object sender, EventArgs e)
         {
             //string path = @"C:\Program Files\MySQL\MySQL Server 5.5\bin\mysqldump.exe -u " + txtBoxDBUsername.Text + @" -p " + txtBoxDBName.Text + @" > " + txtBoxDBName.Text + @".sql";
-            var alias = comboBox1.SelectedItem.ToString();
+            var alias = ((DataRowView)comboBox1.SelectedItem).Row[0].ToString();
             var exportType = ((DataRowView)comboBox2.SelectedItem).Row[0].ToString();
 
             var args = new[]
@@ -36,39 +32,51 @@ namespace DatabaseBackupText
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            foreach (ConnectionStringSettings alias in ConfigurationManager.ConnectionStrings)
-            {
-                if (alias.Name != "LocalSqlServer")
-                {
-                    comboBox1.Items.Add(alias.Name);
-                }
-            }
-
-            var list = new List<string>();
-            list.Add("Excel");
-            list.Add("Csv");
-            list.Add("Sql");
-            list.Add("Access");
-            list.Add("ExcelCsv");
-            list.Add("ExcelSql");
-            list.Add("ExcelAccess");
-            list.Add("CsvSql");
-            list.Add("CsvAccess");
-            list.Add("SqlAccess");
-
             var dt = new DataTable();
             dt.Columns.Add("Id");
             dt.Columns.Add("Description");
-            var i = 0;
 
-            foreach(var item in list) {
+            foreach (var alias in ConfigurationManager.ConnectionStrings.Cast<ConnectionStringSettings>().Where(alias => alias.Name != "LocalSqlServer" && alias.Name != "AccessFile"))
+            {
                 var r = dt.NewRow();
-                r["Id"] = i++;
-                r["Description"] = item;
+                r["Id"] = alias.Name;
+                r["Description"] = alias.Name;
                 dt.Rows.Add(r);
+                //comboBox1.Items.Add(alias.Name);
             }
 
-            comboBox2.DataSource = dt;
+            comboBox1.DataSource = dt;
+            comboBox1.ValueMember = "Id";
+            comboBox1.DisplayMember = "Description";
+
+            var list = new List<string>
+            {
+                "Excel",
+                "Csv",
+                "Sql",
+                "Access",
+                "ExcelCsv",
+                "ExcelSql",
+                "ExcelAccess",
+                "CsvSql",
+                "CsvAccess",
+                "SqlAccess"
+            };
+
+            var dt1 = new DataTable();
+            dt1.Columns.Add("Id");
+            dt1.Columns.Add("Description");
+            var i = 0;
+
+            foreach (var item in list)
+            {
+                var r = dt1.NewRow();
+                r["Id"] = i++;
+                r["Description"] = item;
+                dt1.Rows.Add(r);
+            }
+
+            comboBox2.DataSource = dt1;
             comboBox2.ValueMember = "Id";
             comboBox2.DisplayMember = "Description";
             //textBox1.Text = @"C:\Program Files\MySQL\MySQL Server 5.5\bin\mysqldump.exe -u ";

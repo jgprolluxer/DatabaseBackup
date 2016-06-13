@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -11,13 +10,13 @@ using MySql.Data.MySqlClient;
 using System.IO;
 using System.Configuration;
 using System.Text;
-using System.Data.OleDb;
+using ADOXJetXML;
 
 namespace DatabaseBackup
 {
     public class Backup
     {
-        enum ExportType
+        private enum ExportType
         {
             Excel = 0,
             Csv,
@@ -33,7 +32,6 @@ namespace DatabaseBackup
 
         public static void Database(string[] args)
         {
-            //string path = @"C:\Program Files\MySQL\MySQL Server 5.5\bin\mysqldump.exe -u " + txtBoxDBUsername.Text + @" -p " + txtBoxDBName.Text + @" > " + txtBoxDBName.Text + @".sql";
             if (!EventLog.SourceExists("DatabaseBackupLogSource"))
                 EventLog.CreateEventSource("DatabaseBackupLogSource", "DatabaseBackupLog");
 
@@ -45,8 +43,6 @@ namespace DatabaseBackup
 
             try
             {
-                //var s = "Data Source='sql3.freesqldatabase.com';Port=3306;Database='sql386557';UID='sql386557'PWD='iK2!kM1*';";
-                //excel, csv, sql, access
                 var alias = args[0];
                 var exportType = (ExportType)Convert.ToInt32(args[1]);
                 var cs = ConfigurationManager.ConnectionStrings[alias].ToString();
@@ -62,11 +58,27 @@ namespace DatabaseBackup
                     case ExportType.Csv:
                         ToCsv(ds, targetFolder, alias);
                         break;
+                    case ExportType.Access:
+                        ToAccess(ds, filePath);
+                        break;
+                    case ExportType.Sql:
+                        break;
+                    case ExportType.ExcelCsv:
+                        break;
+                    case ExportType.ExcelSql:
+                        break;
+                    case ExportType.ExcelAccess:
+                        break;
+                    case ExportType.CsvSql:
+                        break;
+                    case ExportType.CsvAccess:
+                        break;
+                    case ExportType.SqlAccess:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
 
-                //var path = $@"{args[0]} {args[1]} -p {args[2]} > {args[3]}.sql";
-                //var p = new Process { StartInfo = { FileName = path } };
-                //p.Start();
                 eventLog.WriteEntry("Database backup - success.", EventLogEntryType.SuccessAudit);
             }
             catch (Exception e)
@@ -120,8 +132,7 @@ namespace DatabaseBackup
                     uint sheetId = 1;
                     if (sheets.Elements<Sheet>().Any())
                     {
-                        sheetId =
-                            sheets.Elements<Sheet>().Select(s => s.SheetId.Value).Max() + 1;
+                        sheetId = sheets.Elements<Sheet>().Select(s => s.SheetId.Value).Max() + 1;
                     }
 
                     var sheetList = new List<Sheet>
@@ -151,10 +162,11 @@ namespace DatabaseBackup
                     foreach (DataRow dsrow in table.Rows)
                     {
                         var newRow = new Row();
+                        var r = dsrow;
                         foreach (var cell in columns.Select(col => new Cell
                         {
                             DataType = CellValues.String,
-                            CellValue = new CellValue(dsrow[col].ToString())
+                            CellValue = new CellValue(r[col].ToString())
                         }))
                         {
                             newRow.AppendChild(cell);
@@ -181,6 +193,9 @@ namespace DatabaseBackup
                 case ExportType.Csv:
                     extension = "csv";
                     break;
+                case ExportType.Access:
+                    extension = "accdb";
+                    break;
             }
 
             return string.Format(@"{0}\{1}.{2}", folder, alias, extension);
@@ -192,7 +207,7 @@ namespace DatabaseBackup
             {
                 var result = new StringBuilder();
 
-                for (int i = 0; i < dt.Columns.Count; i++)
+                for (var i = 0; i < dt.Columns.Count; i++)
                 {
                     result.Append(dt.Columns[i].ColumnName);
                     result.Append(i == dt.Columns.Count - 1 ? "\n" : ",");
@@ -200,53 +215,23 @@ namespace DatabaseBackup
 
                 foreach (DataRow row in dt.Rows)
                 {
-                    for (int i = 0; i < dt.Columns.Count; i++)
+                    for (var i = 0; i < dt.Columns.Count; i++)
                     {
-                        result.Append(row[i].ToString());
+                        result.Append(row[i]);
                         result.Append(i == dt.Columns.Count - 1 ? "\n" : ",");
                     }
                 }
 
-                //var bytes = Encoding.GetEncoding("iso-8859-1").GetBytes(result.ToString());
-                //MemoryStream stream = new MemoryStream(bytes);
-                //StreamReader reader = new StreamReader(stream);
                 var fileName = string.Format("{0}-{1}", alias, dt.TableName);
                 var filePath = GetFilePath(targetFolder, fileName, ExportType.Csv);
                 File.WriteAllText(filePath, result.ToString(), Encoding.Default);
             }
         }
 
-        private static void ToAccess(DataSet ds) {
-            OleDbConnection myConnection = new OleDbConnection("Provider=Microsoft.ACE.OLEDB.12.0;Data Source=\"Database.accdb\";Persist Security Info=False;");
-            OleDbCommand cmd = new OleDbCommand();
-            OleDbCommand cmd1 = new OleDbCommand();
-            DataTable dtCSV = new DataTable();
-            dtCSV = ds.Tables[0];
-            cmd.Connection = myConnection;
-            cmd.CommandType = CommandType.Text;
-            cmd1.Connection = myConnection;
-            cmd1.CommandType = CommandType.Text;
-
-            myConnection.Open();
-
-            foreach (DataTable dt in ds.Tables)
-            {
-                for (int i = 0; i <= dtCSV.Rows.Count - 1; i++)
-                {
-                    cmd.CommandText = "INSERT INTO " + dt.TableName + "(ID, " + dtCSV.Columns[0].ColumnName.Trim() + ") VALUES (" + (i + 1) + ",'" + dtCSV.Rows[i].ItemArray.GetValue(0) + "')";
-
-                    cmd.ExecuteNonQuery();
-
-                    for (int j = 1; j <= dtCSV.Columns.Count - 1; j++)
-                    {
-                        cmd1.CommandText = "UPDATE " + dt.TableName + " SET [" + dtCSV.Columns[j].ColumnName.Trim() + "] = '" + dtCSV.Rows[i].ItemArray.GetValue(j) + "' WHERE ID = " + (i + 1);
-
-                        cmd1.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            myConnection.Close();
+        private static void ToAccess(DataSet ds, string filePath)
+        {
+            var cs = ConfigurationManager.ConnectionStrings["AccessFile"].ToString().Replace("|FilePath|", filePath);
+            DatasetToJet.CopyDatasetSchemaToJetDb(cs, ds, filePath);
         }
     }
 }
