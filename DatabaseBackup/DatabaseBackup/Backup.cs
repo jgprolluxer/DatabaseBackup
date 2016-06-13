@@ -29,6 +29,8 @@ namespace DatabaseBackup
             CsvAccess,
             SqlAccess,
             ExcelCsvSql,
+            ExcelCsvAccess,
+            ExcelSqlAccess,
             CsvSqlAccess,
             ExcelCsvSqlAccess
         }
@@ -94,6 +96,16 @@ namespace DatabaseBackup
                         ToExcel(ds, targetFolder, alias);
                         ToCsv(ds, targetFolder, alias);
                         ToSql(targetFolder, alias);
+                        break;
+                    case ExportType.ExcelCsvAccess:
+                        ToExcel(ds, targetFolder, alias);
+                        ToCsv(ds, targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias);
+                        break;
+                    case ExportType.ExcelSqlAccess:
+                        ToExcel(ds, targetFolder, alias);
+                        ToSql(targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias);
                         break;
                     case ExportType.CsvSqlAccess:
                         ToCsv(ds, targetFolder, alias);
