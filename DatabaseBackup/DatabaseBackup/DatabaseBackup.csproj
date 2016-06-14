@@ -88,6 +88,12 @@
     </None>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ADOXJetXML\ADOXJetXML.csproj">
+      <Project>{fcd275fe-f7d4-446f-96c5-ae82e37e2e44}</Project>
+      <Name>ADOXJetXML</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

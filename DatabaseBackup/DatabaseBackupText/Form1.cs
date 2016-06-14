@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
+using System.Linq;
 using System.Windows.Forms;
 using DatabaseBackup;
-using System.Configuration;
-using System.Linq;
 
-namespace DatabaseBackupText
+namespace DatabaseBackupTest
 {
     public partial class Form1 : Form
     {

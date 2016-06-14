@@ -1,4 +1,4 @@
-﻿namespace DatabaseBackupText
+﻿namespace DatabaseBackupTest
 {
     partial class Form1
     {
