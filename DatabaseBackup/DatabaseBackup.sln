@@ -5,7 +5,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DatabaseBackup", "DatabaseB
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DatabaseBackupTest", "DatabaseBackupText\DatabaseBackupTest.csproj", "{0888ED04-8137-4A7B-859C-4B70D3B0D6FD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ADOXJetXML", "D:\Users\Meme\Desktop\ADOXJetXML\ADOXJetXML.csproj", "{FCD275FE-F7D4-446F-96C5-AE82E37E2E44}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ADOXJetXML", "ADOXJetXML\ADOXJetXML.csproj", "{FCD275FE-F7D4-446F-96C5-AE82E37E2E44}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,7 +46,6 @@ Global
 		{FCD275FE-F7D4-446F-96C5-AE82E37E2E44}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
 		{FCD275FE-F7D4-446F-96C5-AE82E37E2E44}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
 		{FCD275FE-F7D4-446F-96C5-AE82E37E2E44}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{FCD275FE-F7D4-446F-96C5-AE82E37E2E44}.Debug|x64.Build.0 = Debug|Any CPU
 		{FCD275FE-F7D4-446F-96C5-AE82E37E2E44}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FCD275FE-F7D4-446F-96C5-AE82E37E2E44}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FCD275FE-F7D4-446F-96C5-AE82E37E2E44}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
