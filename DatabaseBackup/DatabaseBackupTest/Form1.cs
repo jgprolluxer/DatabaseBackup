@@ -16,16 +16,26 @@ namespace DatabaseBackupTest
 
         private void button1_Click(object sender, EventArgs e)
         {
-            var alias = ((DataRowView)comboBox1.SelectedItem).Row[0].ToString();
-            var exportType = ((DataRowView)comboBox2.SelectedItem).Row[0].ToString();
-
-            var args = new[]
+            try
             {
-                alias,
-                exportType
-            };
+                var alias = ((DataRowView) comboBox1.SelectedItem).Row[0].ToString();
+                var exportType = ((DataRowView) comboBox2.SelectedItem).Row[0].ToString();
 
-            Backup.Database(args);
+                string[] x = new string[2];
+                x[0] = alias;
+                x[1] = exportType;
+                var args = new[]
+                {
+                    alias,
+                    exportType
+                };
+
+                DatabaseBackup.Program.Main(args);
+            }
+            catch (Exception ex)
+            {
+                var s = ex.Message;
+            }
         }
 
         private void Form1_Load(object sender, EventArgs e)

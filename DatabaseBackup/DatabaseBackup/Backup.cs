@@ -35,99 +35,110 @@ namespace DatabaseBackup
             ExcelCsvSqlAccess
         }
 
-        public static void Database(string[] args)
+        public static bool Database(string[] args, ref List<string> errList)
         {
-            if (!EventLog.SourceExists("DatabaseBackupLogSource"))
-                EventLog.CreateEventSource("DatabaseBackupLogSource", "DatabaseBackupLog");
+            var err = "";
 
-            var eventLog = new EventLog("DatabaseBackupLogSource")
-            {
-                Source = "DatabaseBackupLogSource",
-                Log = "DatabaseBackupLog"
-            };
-
-            try
+            if (args.Length == 2)
             {
                 var alias = args[0];
-                var exportType = (ExportType)Convert.ToInt32(args[1]);
-                var cs = ConfigurationManager.ConnectionStrings[alias].ToString();
+                var exportType = (ExportType) Convert.ToInt32(args[1]);
+                var cs = ConfigurationManager.ConnectionStrings[alias].ConnectionString;
                 var targetFolder = ConfigurationManager.AppSettings["TargetFolder"];
-                var ds = GetDataSet(cs);
+                DataSet ds;
 
                 switch (exportType)
                 {
                     case ExportType.Excel:
+                        ds = GetDataSet(cs);
                         ToExcel(ds, targetFolder, alias);
                         break;
                     case ExportType.Csv:
+                        ds = GetDataSet(cs);
                         ToCsv(ds, targetFolder, alias);
                         break;
                     case ExportType.Sql:
-                        ToSql(targetFolder, alias);
+                        ToSql(cs, targetFolder, alias);
                         break;
                     case ExportType.Access:
-                        ToAccess(ds, targetFolder, alias);
+                        ds = GetDataSet(cs);
+                        ToAccess(ds, targetFolder, alias, ref err);
                         break;
                     case ExportType.ExcelCsv:
+                        ds = GetDataSet(cs);
                         ToExcel(ds, targetFolder, alias);
                         ToCsv(ds, targetFolder, alias);
                         break;
                     case ExportType.ExcelSql:
+                        ds = GetDataSet(cs);
                         ToExcel(ds, targetFolder, alias);
-                        ToSql(targetFolder, alias);
+                        ToSql(cs, targetFolder, alias);
                         break;
                     case ExportType.ExcelAccess:
+                        ds = GetDataSet(cs);
                         ToExcel(ds, targetFolder, alias);
-                        ToAccess(ds, targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias, ref err);
                         break;
                     case ExportType.CsvSql:
+                        ds = GetDataSet(cs);
                         ToCsv(ds, targetFolder, alias);
-                        ToSql(targetFolder, alias);
+                        ToSql(cs, targetFolder, alias);
                         break;
                     case ExportType.CsvAccess:
+                        ds = GetDataSet(cs);
                         ToCsv(ds, targetFolder, alias);
-                        ToAccess(ds, targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias, ref err);
                         break;
                     case ExportType.SqlAccess:
-                        ToSql(targetFolder, alias);
-                        ToAccess(ds, targetFolder, alias);
+                        ds = GetDataSet(cs);
+                        ToSql(cs, targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias, ref err);
                         break;
                     case ExportType.ExcelCsvSql:
+                        ds = GetDataSet(cs);
                         ToExcel(ds, targetFolder, alias);
                         ToCsv(ds, targetFolder, alias);
-                        ToSql(targetFolder, alias);
+                        ToSql(cs, targetFolder, alias);
                         break;
                     case ExportType.ExcelCsvAccess:
+                        ds = GetDataSet(cs);
                         ToExcel(ds, targetFolder, alias);
                         ToCsv(ds, targetFolder, alias);
-                        ToAccess(ds, targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias, ref err);
                         break;
                     case ExportType.ExcelSqlAccess:
+                        ds = GetDataSet(cs);
                         ToExcel(ds, targetFolder, alias);
-                        ToSql(targetFolder, alias);
-                        ToAccess(ds, targetFolder, alias);
+                        ToSql(cs, targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias, ref err);
                         break;
                     case ExportType.CsvSqlAccess:
+                        ds = GetDataSet(cs);
                         ToCsv(ds, targetFolder, alias);
-                        ToSql(targetFolder, alias);
-                        ToAccess(ds, targetFolder, alias);
+                        ToSql(cs, targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias, ref err);
                         break;
                     case ExportType.ExcelCsvSqlAccess:
+                        ds = GetDataSet(cs);
                         ToExcel(ds, targetFolder, alias);
                         ToCsv(ds, targetFolder, alias);
-                        ToSql(targetFolder, alias);
-                        ToAccess(ds, targetFolder, alias);
+                        ToSql(cs, targetFolder, alias);
+                        ToAccess(ds, targetFolder, alias, ref err);
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        errList.Add(string.Format("Wrong arguments: {0} {1}", args[0], args[1]));
+                        break;
                 }
-
-                eventLog.WriteEntry("Database backup - success.", EventLogEntryType.SuccessAudit);
             }
-            catch (Exception e)
+            else
             {
-                eventLog.WriteEntry(string.Format("Database backup - error - {0}.", e.Message), EventLogEntryType.Error);
+                errList.Add("Wrong argument length: " + args.Length);
             }
+
+            if(err != "")
+                errList.Add(err);
+
+            return errList.Count == 0;
         }
 
         private static DataSet GetDataSet(string connString)
@@ -276,33 +287,29 @@ namespace DatabaseBackup
             }
         }
 
-        private static void ToAccess(DataSet ds, string targetFolder, string alias)
+        private static void ToAccess(DataSet ds, string targetFolder, string alias, ref string err)
         {
             var filePath = GetFilePath(targetFolder, alias, ExportType.Access);
             var cs = ConfigurationManager.ConnectionStrings["AccessFile"].ToString().Replace("|FilePath|", filePath);
-            DatasetToJet.CopyDatasetSchemaToJetDb(cs, ds, filePath);
+            DatasetToJet.CopyDatasetSchemaToJetDb(cs, ds, filePath, ref err);
         }
 
-        private static void ToSql(string targetFolder, string alias)
+        private static void ToSql(string connectionString, string targetFolder, string alias)
         {
             var filePath = GetFilePath(targetFolder, alias, ExportType.Sql);
-
             //GET INFO FOR MYSQLDUMP
-            var host = ConfigurationManager.AppSettings["server"];
-            var port = ConfigurationManager.AppSettings["port"];
-            var databases = ConfigurationManager.AppSettings["databases"];
-            var user = ConfigurationManager.AppSettings["user"];
-            var password = ConfigurationManager.AppSettings["password"];
-
+            var b = new MySqlConnectionStringBuilder(connectionString);
             var sw = new StreamWriter(filePath, true);
 
             var process = new ProcessStartInfo();
-            var command = string.Format(@"-e -P{0} -h{1} {2} -u{3} -p{4}", port, host, databases, user, password);
-            process.FileName = "C:/Program Files/MySQL/MySQL Server 5.7/bin/mysqldump.exe";
+            var command = string.Format(@"-e -P{0} -h{1} {2} -u{3} -p{4}", b.Port, b.Server, b.Database, b.UserID, b.Password);
+            process.FileName = ConfigurationManager.AppSettings["MySqlDump"];
             process.RedirectStandardInput = false;
             process.RedirectStandardOutput = true;
             process.Arguments = command;
             process.UseShellExecute = false;
+            process.WindowStyle = ProcessWindowStyle.Hidden;
+            process.CreateNoWindow = true;
             var proc = Process.Start(process);
 
             if (proc != null)
