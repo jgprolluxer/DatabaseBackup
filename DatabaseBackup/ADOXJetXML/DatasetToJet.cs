@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using ADOX;
 using ADODB;
 using System.Data;
-using System.Globalization;
 using System.IO;
 using DataTypeEnum = ADOX.DataTypeEnum;
 
@@ -16,8 +15,8 @@ namespace ADOXJetXML
 
         public static void CopyDatasetSchemaToJetDb(string connectionString, DataSet ds, string filePath, ref string err)
         {
-            Connection conn = new ConnectionClass();
-            Catalog cat = new CatalogClass();
+            var conn = new Connection();
+            var cat = new Catalog();
 
             try
             {
@@ -53,7 +52,7 @@ namespace ADOXJetXML
                     {
                         ErrList.AddRange(errList2);
                         ErrList.AddRange(ErrListParameters);
-                        ErrList.Add("ERRORTABLE: " + table.TableName + e.Message + e.StackTrace);
+                        ErrList.Add("ERRORTABLE: " + table.TableName + " " + e.Message + " " + e.StackTrace);
                     }
                 }
             }
@@ -79,17 +78,21 @@ namespace ADOXJetXML
 
         private static Table CopyDataTable(DataTable table, Catalog cat)
         {
-            Table adoxTable = new TableClass();
-            adoxTable.Name = table.TableName;
-            adoxTable.ParentCatalog = cat;
+            var adoxTable = new Table
+            {
+                Name = table.TableName,
+                ParentCatalog = cat
+            };
 
             foreach (DataColumn col in table.Columns)
             {
-                Column adoxCol = new ColumnClass();
-                adoxCol.ParentCatalog = cat;
-                adoxCol.Name = col.ColumnName;
-                adoxCol.Type = TranslateDataTypeToAdoxDataType(col.DataType);
-                adoxCol.Attributes = ColumnAttributesEnum.adColNullable;
+                var adoxCol = new Column
+                {
+                    ParentCatalog = cat,
+                    Name = col.ColumnName,
+                    Type = TranslateDataTypeToAdoxDataType(col.DataType),
+                    Attributes = ColumnAttributesEnum.adColNullable
+                };
 
                 if (col.MaxLength >= 0)
                     adoxCol.DefinedSize = col.MaxLength;
@@ -105,20 +108,20 @@ namespace ADOXJetXML
             var guid = type.GUID.ToString();
 
             var adoxType =
-                 guid == typeof(bool).GUID.ToString() ? DataTypeEnum.adVarChar :
+                 guid == typeof(bool).GUID.ToString() ? DataTypeEnum.adBoolean :
                  guid == typeof(byte).GUID.ToString() ? DataTypeEnum.adUnsignedTinyInt :
                  guid == typeof(char).GUID.ToString() ? DataTypeEnum.adChar :
                  guid == typeof(DateTime).GUID.ToString() ? DataTypeEnum.adDate :
                  guid == typeof(decimal).GUID.ToString() ? DataTypeEnum.adDouble :
                  guid == typeof(double).GUID.ToString() ? DataTypeEnum.adDouble :
-                 guid == typeof(short).GUID.ToString() ? DataTypeEnum.adInteger :
+                 guid == typeof(short).GUID.ToString() ? DataTypeEnum.adSmallInt :
                  guid == typeof(int).GUID.ToString() ? DataTypeEnum.adInteger :
                  guid == typeof(long).GUID.ToString() ? DataTypeEnum.adBigInt :
                  guid == typeof(sbyte).GUID.ToString() ? DataTypeEnum.adTinyInt :
                  guid == typeof(float).GUID.ToString() ? DataTypeEnum.adSingle :
                  guid == typeof(string).GUID.ToString() ? DataTypeEnum.adLongVarWChar :
                  guid == typeof(TimeSpan).GUID.ToString() ? DataTypeEnum.adDouble :
-                 guid == typeof(ushort).GUID.ToString() ? DataTypeEnum.adInteger :
+                 guid == typeof(ushort).GUID.ToString() ? DataTypeEnum.adSmallInt :
                  guid == typeof(uint).GUID.ToString() ? DataTypeEnum.adInteger :
                  guid == typeof(ulong).GUID.ToString() ? DataTypeEnum.adBigInt :
                  DataTypeEnum.adBinary;
@@ -128,8 +131,10 @@ namespace ADOXJetXML
 
         private static Command AdoxTableInsertCommand(DataTable aTable, ref List<DataTypeEnum> aType)
         {
-            Command result = new CommandClass();
-            result.CommandText = string.Format("INSERT INTO {0} ({1}) values({2}) ", aTable.TableName, "{0}", "{1}");
+            var result = new Command
+            {
+                CommandText = string.Format("INSERT INTO {0} ({1}) values({2}) ", aTable.TableName, "{0}", "{1}")
+            };
             var colNames = string.Empty;
             var colVals = string.Empty;
 
@@ -165,10 +170,9 @@ namespace ADOXJetXML
         private static void MoveData(Table adoxTab, DataTable aTable)
         {
             ErrListParameters.Clear();
-            object count;
             var aType = new List<DataTypeEnum>();
             var cmd = AdoxTableInsertCommand(aTable, ref aType); //adoxTab);
-            cmd.ActiveConnection = (ConnectionClass)adoxTab.ParentCatalog.ActiveConnection;
+            cmd.ActiveConnection = (Connection) adoxTab.ParentCatalog.ActiveConnection;
 
             foreach (DataRow row in aTable.Rows)
             {
@@ -176,19 +180,24 @@ namespace ADOXJetXML
                 var a = new List<string>();
                 var i = 0;
 
-                foreach (object[] item in row.ItemArray)
+                foreach (var item in row.ItemArray)
                 {
-                    switch (aType[0])
+                    switch (aType[i])
                     {
                         case DataTypeEnum.adVarBinary: break;
                         case DataTypeEnum.adDate:
-                            a.Add(GetDate(item[i]));
+                            ErrListParameters.Add("DATE 1: (" + item + ") ");
+                            ErrListParameters.Add("DATE 2: (" + GetDate(item) + ") ");
+                            a.Add(GetDate(item));
                             break;
                         case DataTypeEnum.adBoolean:
-                            a.Add(GetBoolean(item[i]));
+                            ErrListParameters.Add("BOOLEAN 1: (" + item + ") ");
+                            ErrListParameters.Add("BOOLEAN 2: (" + GetBoolean(item) + ") ");
+                            a.Add(GetBoolean(item));
                             break;
                         default:
-                            a.Add(item[i].ToString());
+                            ErrListParameters.Add("STRING: (" + item + ") ");
+                            a.Add(item.ToString());
                             break;
                     }
 
@@ -197,31 +206,33 @@ namespace ADOXJetXML
 
                 ErrListParameters.Add("PARAMETERS: (" + string.Join(", ", a.ToArray()) + ") ");
                 object arry = a.ToArray();
+                object count;
                 cmd.Execute(out count, ref arry, 1);
             }
 
             ErrListParameters.Clear();
         }
 
-        private static int GetInt(object o)
-        {
-            int r;
-            int.TryParse((string)o, out r);
-            return r;
-        }
+        //private static int GetInt(object o)
+        //{
+        //    int r;
+        //    int.TryParse((string)o, out r);
+        //    return r;
+        //}
 
         private static string GetDate(object o)
         {
             DateTime r;
-            DateTime.TryParse((string)o, out r);
-            return r.ToString(CultureInfo.InvariantCulture);
+            if(!DateTime.TryParse(o.ToString(), out r))
+                r = new DateTime(); //todo fix this
+            return r.ToString("dd/MM/yyyy HH:mm:ss");
         }
 
         private static string GetBoolean(object o)
         {
             bool r;
             bool.TryParse((string)o, out r);
-            return r.ToString(CultureInfo.InvariantCulture);
+            return r.ToString();
         }
     }
 }
